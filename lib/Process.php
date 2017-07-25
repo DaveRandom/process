@@ -2,7 +2,6 @@
 
 namespace Amp\Process;
 
-use Amp\ByteStream\ResourceInputStream;
 use Amp\ByteStream\ResourceOutputStream;
 use Amp\Deferred;
 use Amp\Process\Internal\Posix\Runner as PosixProcessRunner;
@@ -30,6 +29,14 @@ class Process {
 
     /** @var ProcessHandle */
     private $handle;
+
+    private $stdin; //todo
+
+    /** @var ProcessInputStream */
+    private $stdout;
+
+    /** @var ProcessInputStream */
+    private $stderr;
 
     /** @var Deferred */
     private $startDeferred;
@@ -86,20 +93,30 @@ class Process {
      * @throws \Amp\Process\ProcessException If starting the process fails.
      */
     public function start(): Promise {
-        $this->startDeferred = $deferred = new Deferred;
+        $this->startDeferred = new Deferred;
+        $streamDeferreds = [new Deferred, new Deferred, new Deferred];
+
         $processHandle = &$this->handle;
+        $startDeferred = &$this->startDeferred;
 
         self::$processRunner->start($this->command, $this->cwd, $this->env, $this->options)
-            ->onResolve(static function($error, $handle) use($deferred, &$processHandle) {
+            ->onResolve(static function($error, $handle) use($startDeferred, &$processHandle, $streamDeferreds) {
                 if ($error) {
-                    $deferred->fail($error);
+                    $startDeferred->fail($error);
                 } else {
                     $processHandle = $handle;
-                    $deferred->resolve();
+                    $streamDeferreds[0]->resolve($handle->stdin);
+                    $streamDeferreds[1]->resolve($handle->stdout);
+                    $streamDeferreds[2]->resolve($handle->stderr);
+                    $startDeferred->resolve();
+                    $startDeferred = null;
                 }
             });
 
-        return $deferred->promise();
+        $this->stdout = new ProcessInputStream($streamDeferreds[1]->promise());
+        $this->stderr = new ProcessInputStream($streamDeferreds[2]->promise());
+
+        return $startDeferred->promise();
     }
 
     /**
@@ -227,39 +244,39 @@ class Process {
      * @throws \Amp\Process\StatusError If the process is not running.
      */
     public function getStdin(): ResourceOutputStream {
-        if (!$this->isRunning()) {
+        if (!$this->isRunning() && $this->startDeferred === null) {
             throw new StatusError("The process is not running");
         }
 
-        return $this->handle->stdin;
+        return $this->stdin; //todo
     }
 
     /**
      * Gets the process output stream (STDOUT).
      *
-     * @return \Amp\ByteStream\ResourceInputStream
+     * @return ProcessInputStream
      * @throws \Amp\Process\StatusError If the process is not running.
      */
-    public function getStdout(): ResourceInputStream {
-        if (!$this->isRunning()) {
+    public function getStdout(): ProcessInputStream {
+        if (!$this->isRunning() && $this->startDeferred === null) {
             throw new StatusError("The process is not running");
         }
 
-        return $this->handle->stdout;
+        return $this->stdout;
     }
 
     /**
      * Gets the process error stream (STDERR).
      *
-     * @return \Amp\ByteStream\ResourceInputStream
+     * @return ProcessInputStream
      * @throws \Amp\Process\StatusError If the process is not running.
      */
-    public function getStderr(): ResourceInputStream {
-        if (!$this->isRunning()) {
+    public function getStderr(): ProcessInputStream {
+        if (!$this->isRunning() && $this->startDeferred === null) {
             throw new StatusError("The process is not running");
         }
 
-        return $this->handle->stderr;
+        return $this->stderr;
     }
 }
 

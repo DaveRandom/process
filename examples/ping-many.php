@@ -7,7 +7,7 @@ use function Amp\Promise\all;
 
 function show_process_output(Process $process): \Generator
 {
-    yield $process->start();
+    $process->start();
 
     $stream = $process->getStdout();
     while ($chunk = yield $stream->read()) {
@@ -20,7 +20,7 @@ function show_process_output(Process $process): \Generator
 }
 
 Amp\Loop::run(function () {
-    $hosts = ['8.8.8.8', '8.8.4.4', 'google.com', 'stackoverflow.com', 'github.com'];
+    $hosts = ['8.8.8.8'];//, '8.8.4.4', 'google.com', 'stackoverflow.com', 'github.com'];
 
     $promises = [];
 

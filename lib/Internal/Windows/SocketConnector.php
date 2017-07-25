@@ -236,9 +236,9 @@ final class SocketConnector
 
         $handle->status = ProcessStatus::RUNNING;
         $handle->pid = $packet['pid'];
-        $handle->stdin = new ResourceOutputStream($handle->sockets[0]);
-        $handle->stdout = new ResourceInputStream($handle->sockets[1]);
-        $handle->stderr = new ResourceInputStream($handle->sockets[2]);
+        $handle->stdin = $handle->sockets[0];
+        $handle->stdout = $handle->sockets[1];
+        $handle->stderr = $handle->sockets[2];
 
         $handle->exitCodeWatcher = Loop::onReadable($handle->sockets[0], [$this, 'onReadable_ExitCode'], $handle);
         Loop::unreference($handle->exitCodeWatcher);

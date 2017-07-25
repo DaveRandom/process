@@ -2,8 +2,6 @@
 
 namespace Amp\Process\Internal\Posix;
 
-use Amp\ByteStream\ResourceInputStream;
-use Amp\ByteStream\ResourceOutputStream;
 use Amp\Loop;
 use Amp\Process\Internal\ProcessHandle;
 use Amp\Process\Internal\ProcessRunner;
@@ -44,9 +42,9 @@ final class Runner implements ProcessRunner
 
         $handle->status = ProcessStatus::RUNNING;
         $handle->pid = (int) $pid;
-        $handle->stdin = new ResourceOutputStream($handle->pipes[0]);
-        $handle->stdout = new ResourceInputStream($handle->pipes[1]);
-        $handle->stderr = new ResourceInputStream($handle->pipes[2]);
+        $handle->stdin = $handle->pipes[0];
+        $handle->stdout = $handle->pipes[1];
+        $handle->stderr = $handle->pipes[2];
 
         $handle->extraDataPipeWatcher = Loop::onReadable($stream, [$this, 'onProcessEndExtraDataPipeReadable'], $handle);
         Loop::unreference($handle->extraDataPipeWatcher);

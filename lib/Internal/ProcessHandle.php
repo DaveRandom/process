@@ -4,16 +4,17 @@ namespace Amp\Process\Internal;
 
 use Amp\ByteStream\ResourceInputStream;
 use Amp\ByteStream\ResourceOutputStream;
+use Amp\Process\ProcessInputStream;
 
 abstract class ProcessHandle
 {
-    /** @var ResourceOutputStream */
+    /** @var resource */
     public $stdin;
 
-    /** @var ResourceInputStream */
+    /** @var resource */
     public $stdout;
 
-    /** @var ResourceInputStream */
+    /** @var resource */
     public $stderr;
 
     /** @var int */
